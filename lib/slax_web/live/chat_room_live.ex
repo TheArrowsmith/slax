@@ -1,6 +1,7 @@
 defmodule SlaxWeb.ChatRoomLive do
   use SlaxWeb, :live_view
 
+  alias Slax.Accounts.User
   alias Slax.Chat
   alias Slax.Chat.Message
 
@@ -35,9 +36,9 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def maybe_update_room(socket, room) do
-    messages = Chat.list_messages_in_room(room)
-
-    assign(socket, messages: messages, room: room)
+    socket
+    |> assign(room: room)
+    |> stream(:messages, Chat.list_messages_in_room(room), reset: true)
   end
 
   @impl true
@@ -49,7 +50,7 @@ defmodule SlaxWeb.ChatRoomLive do
         {:ok, message} ->
           socket
           |> assign_form(%Message{})
-          |> update(:messages, fn old -> old ++ [message] end)
+          |> stream_insert(:messages, message)
 
         {:error, _changeset} ->
           socket
@@ -72,6 +73,28 @@ defmodule SlaxWeb.ChatRoomLive do
       |> to_form()
 
     assign(socket, :new_message_form, form)
+  end
+
+  attr :current_user, User, required: true
+  attr :html_id, :string, required: true
+  attr :message, Message, required: true
+
+  defp message(assigns) do
+    ~H"""
+    <div id={@html_id} class="relative group flex px-4 py-3">
+      <button phx-click="delete-message" data-confirm="Are you sure?" class="absolute top-4 right-4 text-red-500 hover:text-red-800 cursor-pointer hidden group-hover:block">
+        <.icon :if={@current_user.id == @message.user.id} name="hero-trash" class="h-4 w-4"/>
+      </button>
+      <div class="h-10 w-10 rounded flex-shrink-0 bg-slate-300"></div>
+      <div class="ml-2">
+        <div class="-mt-1">
+          <span class="text-sm font-semibold"><%= @message.user.username %></span>
+          <span class="ml-1 text-xs text-gray-500"><%= message_timestamp(@message) %></span>
+        </div>
+        <p class="text-sm"><%= @message.body %></p>
+      </div>
+    </div>
+    """
   end
 
   defp message_timestamp(message) do
