@@ -1,4 +1,44 @@
-<div class="flex flex-col flex-grow">
+<div class="flex flex-col flex-shrink-0 w-64 bg-slate-100">
+  <div class="flex justify-between items-center flex-shrink-0 h-16 border-b border-slate-300 px-4">
+    <div class="flex flex-col gap-1.5">
+      <h1 class="text-lg font-bold text-gray-800">
+        Slax
+      </h1>
+    </div>
+  </div>
+  <div class="mt-4">
+    <div class="flex items-center h-8 px-3 group">
+      <span class="ml-2 leading-none font-medium text-sm">Rooms</span>
+    </div>
+    <div id="rooms_list">
+      <.link
+        :for={room <- @rooms}
+        class={[
+          "flex items-center h-8 text-sm pl-8 pr-3",
+          (room.id == @room.id && "bg-slate-300") || "hover:bg-slate-300"
+        ]}
+        patch={~p"/rooms/#{room}"}
+      >
+        <svg
+          class="h-4 w-4"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M9.243 3.03a1 1 0 01.727 1.213L9.53 6h2.94l.56-2.243a1 1 0 111.94.486L14.53 6H17a1 1 0 110 2h-2.97l-1 4H15a1 1 0 110 2h-2.47l-.56 2.242a1 1 0 11-1.94-.485L10.47 14H7.53l-.56 2.242a1 1 0 11-1.94-.485L5.47 14H3a1 1 0 110-2h2.97l1-4H5a1 1 0 110-2h2.47l.56-2.243a1 1 0 011.213-.727zM9.03 8l-1 4h2.938l1-4H9.031z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        <span class={["ml-2 leading-none", room.id == @room.id && "font-bold"]}>
+          <%= room.name %>
+        </span>
+      </.link>
+    </div>
+  </div>
+</div>
+<div class="flex flex-col flex-grow shadow-lg">
   <div class="flex justify-between items-center flex-shrink-0 h-16 bg-white border-b border-slate-300 px-4">
     <div class="flex flex-col gap-1.5">
       <h1 class="text-sm font-bold leading-none">#<%= @room.name %></h1>

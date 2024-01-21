@@ -6,15 +6,38 @@ defmodule SlaxWeb.ChatRoomLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    room = Chat.get_first_room!()
-    messages = Chat.list_messages_in_room(room)
+    rooms = Chat.list_rooms()
 
     socket =
       socket
       |> assign_form(%Message{})
-      |> assign(messages: messages, room: room)
+      |> assign(rooms: rooms)
 
     {:ok, socket}
+  end
+
+  @impl true
+  def handle_params(params, _session, socket) do
+    room =
+      case params["id"] do
+        nil ->
+          Chat.get_first_room!()
+
+        id ->
+          Chat.get_room!(id)
+      end
+
+    {:noreply, maybe_update_room(socket, room)}
+  end
+
+  def maybe_update_room(%{assigns: %{room: %{id: id}}} = socket, %{id: id}) do
+    socket
+  end
+
+  def maybe_update_room(socket, room) do
+    messages = Chat.list_messages_in_room(room)
+
+    assign(socket, messages: messages, room: room)
   end
 
   @impl true

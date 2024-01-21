@@ -9,6 +9,14 @@ defmodule Slax.Chat do
     Repo.one(from r in Room, limit: 1)
   end
 
+  def get_room!(id) do
+    Repo.get!(Room, id)
+  end
+
+  def list_rooms do
+    Repo.all(Room, order_by: [asc: :name])
+  end
+
   def list_messages_in_room(%Room{id: room_id}) do
     Message
     |> where([m], m.room_id == ^room_id)
