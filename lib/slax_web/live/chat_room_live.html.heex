@@ -1,0 +1,21 @@
+<div class="flex flex-col flex-grow">
+  <div class="flex justify-between items-center flex-shrink-0 h-16 bg-white border-b border-slate-300 px-4">
+    <div class="flex flex-col gap-1.5">
+      <h1 class="text-sm font-bold leading-none">#<%= @room.name %></h1>
+      <div class="text-xs leading-none h-3.5"><%= @room.topic %></div>
+    </div>
+    <div class="text-sm leading-10"><%= @current_user.username %></div>
+  </div>
+  <div class="flex flex-col flex-grow overflow-auto">
+    <div :for={message <- @messages} class="flex px-4 py-3">
+      <div class="h-10 w-10 rounded flex-shrink-0 bg-slate-300"></div>
+      <div class="ml-2">
+        <div class="-mt-1">
+          <span class="text-sm font-semibold"><%= message.user.username %></span>
+          <span class="ml-1 text-xs text-gray-500"><%= message_timestamp(message) %></span>
+        </div>
+        <p class="text-sm"><%= message.body %></p>
+      </div>
+    </div>
+  </div>
+</div>
