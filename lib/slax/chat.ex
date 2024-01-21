@@ -17,6 +17,16 @@ defmodule Slax.Chat do
     Repo.all(Room, order_by: [asc: :name])
   end
 
+  def change_room(room, attrs \\ %{}) do
+    Room.changeset(room, attrs)
+  end
+
+  def update_room(%Room{} = room, attrs) do
+    room
+    |> Room.changeset(attrs)
+    |> Repo.update()
+  end
+
   def list_messages_in_room(%Room{id: room_id}) do
     Message
     |> where([m], m.room_id == ^room_id)
