@@ -42,6 +42,13 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   @impl true
+  def handle_event("delete-message", %{"id" => id}, socket) do
+    {:ok, message} = Chat.delete_message_by_id(id, socket.assigns.current_user)
+
+    {:noreply, stream_delete(socket, :messages, message)}
+  end
+
+  @impl true
   def handle_event("submit-message", %{"message" => message_params}, socket) do
     %{current_user: current_user, room: room} = socket.assigns
 
@@ -82,8 +89,13 @@ defmodule SlaxWeb.ChatRoomLive do
   defp message(assigns) do
     ~H"""
     <div id={@html_id} class="relative group flex px-4 py-3">
-      <button phx-click="delete-message" data-confirm="Are you sure?" class="absolute top-4 right-4 text-red-500 hover:text-red-800 cursor-pointer hidden group-hover:block">
-        <.icon :if={@current_user.id == @message.user.id} name="hero-trash" class="h-4 w-4"/>
+      <button
+        phx-click="delete-message"
+        phx-value-id={@message.id}
+        data-confirm="Are you sure?"
+        class="absolute top-4 right-4 text-red-500 hover:text-red-800 cursor-pointer hidden group-hover:block"
+      >
+        <.icon :if={@current_user.id == @message.user.id} name="hero-trash" class="h-4 w-4" />
       </button>
       <div class="h-10 w-10 rounded flex-shrink-0 bg-slate-300"></div>
       <div class="ml-2">

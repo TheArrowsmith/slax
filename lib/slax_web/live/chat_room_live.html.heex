@@ -55,7 +55,12 @@
     <div class="text-sm leading-10"><%= @current_user.username %></div>
   </div>
   <div id="room-messages" phx-update="stream" class="flex flex-col flex-grow overflow-auto">
-    <.message html_id={html_id} message={message} :for={{html_id, message} <- @streams.messages} current_user={@current_user} />
+    <.message
+      :for={{html_id, message} <- @streams.messages}
+      html_id={html_id}
+      message={message}
+      current_user={@current_user}
+    />
   </div>
   <div class="h-12 bg-white px-4 pb-4">
     <.form
