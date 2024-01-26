@@ -36,6 +36,8 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def maybe_update_room(socket, room) do
+    Chat.subscribe_to_room(room)
+
     socket
     |> assign(room: room)
     |> stream(:messages, Chat.list_messages_in_room(room), reset: true)
@@ -43,9 +45,9 @@ defmodule SlaxWeb.ChatRoomLive do
 
   @impl true
   def handle_event("delete-message", %{"id" => id}, socket) do
-    {:ok, message} = Chat.delete_message_by_id(id, socket.assigns.current_user)
+    Chat.delete_message_by_id(id, socket.assigns.current_user)
 
-    {:noreply, stream_delete(socket, :messages, message)}
+    {:noreply, socket}
   end
 
   @impl true
@@ -54,10 +56,8 @@ defmodule SlaxWeb.ChatRoomLive do
 
     socket =
       case Chat.create_message(room, message_params, current_user) do
-        {:ok, message} ->
-          socket
-          |> assign_form(%Message{})
-          |> stream_insert(:messages, message)
+        {:ok, _message} ->
+          assign_form(socket, %Message{})
 
         {:error, _changeset} ->
           socket
@@ -80,6 +80,23 @@ defmodule SlaxWeb.ChatRoomLive do
       |> to_form()
 
     assign(socket, :new_message_form, form)
+  end
+
+  @impl true
+  def handle_info({:new_message, message}, socket) do
+    socket =
+      if message.room_id == socket.assigns.room.id do
+        stream_insert(socket, :messages, message)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:message_deleted, message}, socket) do
+    {:noreply, stream_delete(socket, :messages, message)}
   end
 
   attr :current_user, User, required: true
