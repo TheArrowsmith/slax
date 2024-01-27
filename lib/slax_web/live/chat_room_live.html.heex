@@ -36,6 +36,16 @@
         </span>
       </.link>
     </div>
+    <div class="mt-4">
+      <div class="flex items-center h-8 px-3 group">
+        <div class="flex items-center flex-grow focus:outline-none">
+          <span class="ml-2 leading-none font-medium text-sm">Direct Messages</span>
+        </div>
+      </div>
+      <div id="messages-list">
+        <.user_link :for={user <- @users} user={user} online={user.id in @online_users} />
+      </div>
+    </div>
   </div>
 </div>
 <div class="flex flex-col flex-grow shadow-lg">
