@@ -9,7 +9,7 @@ defmodule SlaxWeb.ChatRoomLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    rooms = Chat.list_rooms()
+    rooms = Chat.list_joined_rooms(socket.assigns.current_user)
     users = Accounts.list_users()
 
     OnlineUsers.track(self(), socket.assigns.current_user)
@@ -46,7 +46,7 @@ defmodule SlaxWeb.ChatRoomLive do
     Chat.subscribe_to_room(room)
 
     socket
-    |> assign(room: room)
+    |> assign(room: room, joined?: Chat.joined?(room, socket.assigns.current_user))
     |> stream(:messages, Chat.list_messages_in_room(room), reset: true)
     |> scroll_messages_to_bottom()
   end
@@ -64,18 +64,16 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   @impl true
+  def handle_event("join-room", _, socket) do
+    current_user = socket.assigns.current_user
+    Chat.join_room(socket.assigns.room, current_user)
+    socket = assign(socket, joined?: true, rooms: Chat.list_joined_rooms(current_user))
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("submit-message", %{"message" => message_params}, socket) do
-    %{current_user: current_user, room: room} = socket.assigns
-
-    socket =
-      case Chat.create_message(room, message_params, current_user) do
-        {:ok, _message} ->
-          assign_form(socket, %Message{})
-
-        {:error, _changeset} ->
-          socket
-      end
-
+    socket = maybe_submit_message(socket, message_params, socket.assigns.joined?)
     {:noreply, socket}
   end
 
@@ -93,6 +91,23 @@ defmodule SlaxWeb.ChatRoomLive do
       |> to_form()
 
     assign(socket, :new_message_form, form)
+  end
+
+  defp maybe_submit_message(socket, _, false), do: socket
+
+  defp maybe_submit_message(socket, message_params, true) do
+    %{current_user: current_user, room: room} = socket.assigns
+
+    socket =
+      case Chat.create_message(room, message_params, current_user) do
+        {:ok, _message} ->
+          assign_form(socket, %Message{})
+
+        {:error, _changeset} ->
+          socket
+      end
+
+    socket
   end
 
   @impl true

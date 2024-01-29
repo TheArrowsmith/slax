@@ -13,7 +13,7 @@ defmodule SlaxWeb.ChatRoomLive.Index do
       <div class="bg-slate-50 border rounded">
         <div class="divide-y">
           <div
-            :for={{id, room} <- @streams.rooms}
+            :for={{id, {room, joined?}} <- @streams.rooms}
             phx-click="view-room"
             phx-value-id={room.id}
             id={id}
@@ -27,8 +27,10 @@ defmodule SlaxWeb.ChatRoomLive.Index do
                 </span>
               </div>
               <div class="text-gray-500 text-sm">
-                <span class="text-green-600 font-bold">✓ Joined</span>
-                <span class="mx-1">·</span>
+                <%= if joined? do %>
+                  <span class="text-green-600 font-bold">✓ Joined</span>
+                  <span class="mx-1">·</span>
+                <% end %>
                 N members
                 <%= if room.topic do %>
                   <span class="mx-1">·</span>
@@ -36,6 +38,17 @@ defmodule SlaxWeb.ChatRoomLive.Index do
                 <% end %>
               </div>
             </div>
+            <button
+              class="opacity-0 group-hover:opacity-100 bg-white hover:bg-gray-100 border border-gray-400 text-gray-700 px-3 py-1.5 w-24 rounded-sm font-bold"
+              phx-click="toggle-room-membership"
+              phx-value-id={room.id}
+            >
+              <%= if joined? do %>
+                Leave
+              <% else %>
+                Join
+              <% end %>
+            </button>
           </div>
         </div>
       </div>
@@ -43,9 +56,26 @@ defmodule SlaxWeb.ChatRoomLive.Index do
     """
   end
 
+  @impl true
   def mount(_params, _session, socket) do
-    rooms = Chat.list_rooms()
-    {:ok, stream(socket, :rooms, rooms)}
+    rooms = Chat.list_rooms_with_membership(socket.assigns.current_user)
+
+    socket =
+      socket
+      |> stream_configure(:rooms, dom_id: fn {room, _} -> "rooms-#{room.id}" end)
+      |> stream(:rooms, rooms)
+
+    {:ok, socket}
+  end
+
+  @impl true
+  def handle_event("toggle-room-membership", %{"id" => id}, socket) do
+    id
+    |> Chat.get_room!()
+    |> Chat.toggle_room_membership(socket.assigns.current_user)
+
+    {:noreply,
+     stream(socket, :rooms, Chat.list_rooms_with_membership(socket.assigns.current_user))}
   end
 
   @impl true

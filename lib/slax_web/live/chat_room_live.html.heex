@@ -81,6 +81,7 @@
       <h1 class="text-sm font-bold leading-none">
         #<%= @room.name %>
         <.link
+          :if={@joined?}
           class="font-normal text-xs text-blue-600 hover:text-blue-700"
           navigate={~p"/rooms/#{@room}/edit"}
         >
@@ -104,7 +105,7 @@
       current_user={@current_user}
     />
   </div>
-  <div class="h-12 bg-white px-4 pb-4">
+  <div :if={@joined?} class="h-12 bg-white px-4 pb-4">
     <.form
       id="new-message-form"
       for={@new_message_form}
@@ -132,5 +133,33 @@
         </svg>
       </button>
     </.form>
+  </div>
+  <div
+    :if={!@joined?}
+    class="flex justify-around mx-5 mb-5 p-6 bg-slate-100 border-slate-300 border rounded-lg"
+  >
+    <div class="max-w-3-xl text-center">
+      <div class="mb-4">
+        <h1 class="text-xl font-semibold">#<%= @room.name %></h1>
+        <p :if={@room.topic} class="text-sm mt-1 text-gray-600"><%= @room.topic %></p>
+      </div>
+      <div class="flex items-center justify-around">
+        <button
+          phx-click="join-room"
+          class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          Join Room
+        </button>
+      </div>
+      <div class="mt-4">
+        <.link
+          navigate={~p"/rooms"}
+          href="#"
+          class="text-sm text-slate-500 underline hover:text-slate-600"
+        >
+          Back to All Rooms
+        </.link>
+      </div>
+    </div>
   </div>
 </div>
