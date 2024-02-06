@@ -52,6 +52,11 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   @impl true
+  def handle_event("browse-rooms", _, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/rooms")}
+  end
+
+  @impl true
   def handle_event("delete-message", %{"id" => id}, socket) do
     Chat.delete_message_by_id(id, socket.assigns.current_user)
 
