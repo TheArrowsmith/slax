@@ -20,6 +20,12 @@ defmodule SlaxWeb.ChatRoomLive do
       |> assign_form(%Message{})
       |> assign(rooms: rooms, users: users)
       |> assign(:online_users, OnlineUsers.list())
+      |> stream_configure(:messages,
+        dom_id: fn
+          %Message{id: id} -> "messages-#{id}"
+          :unread_marker -> "messages-unread-marker"
+        end
+      )
 
     {:ok, socket}
   end
@@ -45,10 +51,31 @@ defmodule SlaxWeb.ChatRoomLive do
   def maybe_update_room(socket, room) do
     Chat.subscribe_to_room(room)
 
+    last_read_id = Chat.get_last_read_id(room, socket.assigns.current_user)
+
+    messages =
+      room
+      |> Chat.list_messages_in_room()
+      |> maybe_insert_unread_marker(last_read_id)
+
+    Chat.update_last_read_id(room, socket.assigns.current_user)
+
     socket
     |> assign(room: room, joined?: Chat.joined?(room, socket.assigns.current_user))
-    |> stream(:messages, Chat.list_messages_in_room(room), reset: true)
     |> scroll_messages_to_bottom()
+    |> stream(:messages, messages, reset: true)
+  end
+
+  defp maybe_insert_unread_marker(messages, nil), do: messages
+
+  defp maybe_insert_unread_marker(messages, last_read_id) do
+    {read, unread} = Enum.split_while(messages, &(&1.id <= last_read_id))
+
+    if unread == [] do
+      read
+    else
+      read ++ [:unread_marker | unread]
+    end
   end
 
   @impl true
@@ -112,8 +139,12 @@ defmodule SlaxWeb.ChatRoomLive do
 
   @impl true
   def handle_info({:new_message, message}, socket) do
+    %{room: room} = socket.assigns
+
     socket =
-      if message.room_id == socket.assigns.room.id do
+      if message.room_id == room.id do
+        Chat.update_last_read_id(room, socket.assigns.current_user)
+
         socket
         |> stream_insert(:messages, message)
         |> scroll_messages_to_bottom()
@@ -159,6 +190,17 @@ defmodule SlaxWeb.ChatRoomLive do
         </div>
         <p class="text-sm"><%= @message.body %></p>
       </div>
+    </div>
+    """
+  end
+
+  attr :html_id, :string, required: true
+
+  def unread_messages_divider(assigns) do
+    ~H"""
+    <div id={@html_id} class="w-full flex text-red-500 items-center gap-3 pr-5">
+      <div class="w-full h-px grow bg-red-500"></div>
+      <div class="text-sm">New</div>
     </div>
     """
   end

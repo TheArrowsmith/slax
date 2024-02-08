@@ -9,6 +9,8 @@ defmodule Slax.Chat.RoomMembership do
     belongs_to :user, User
     belongs_to :room, Room
 
+    field :last_read_id, :integer
+
     timestamps(type: :utc_datetime)
   end
 

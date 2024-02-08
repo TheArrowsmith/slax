@@ -98,12 +98,13 @@
     class="flex flex-col flex-grow overflow-auto"
     phx-hook="RoomMessages"
   >
-    <.message
-      :for={{html_id, message} <- @streams.messages}
-      html_id={html_id}
-      message={message}
-      current_user={@current_user}
-    />
+    <%= for {html_id, message} <- @streams.messages do %>
+      <%= if message == :unread_marker do %>
+        <.unread_messages_divider html_id={html_id} />
+      <% else %>
+        <.message html_id={html_id} message={message} current_user={@current_user} />
+      <% end %>
+    <% end %>
   </div>
   <div :if={@joined?} class="h-12 bg-white px-4 pb-4">
     <.form
