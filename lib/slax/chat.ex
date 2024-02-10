@@ -21,6 +21,16 @@ defmodule Slax.Chat do
     Repo.all(Room, order_by: [asc: :name])
   end
 
+  def list_rooms_with_unread_counts(user) do
+    query =
+      from r in Room,
+        left_join: m in RoomMembership,
+        on: r.id == m.room_id and m.user_id == ^user.id,
+        select: {r, not is_nil(m.id)}
+
+    Repo.all(query)
+  end
+
   def list_rooms_with_membership(user) do
     query =
       from r in Room,
@@ -50,10 +60,16 @@ defmodule Slax.Chat do
   end
 
   def list_joined_rooms(%User{} = user) do
-    user
-    |> Repo.preload(:rooms)
-    |> Map.get(:rooms)
-    |> Enum.sort_by(& &1.name)
+    from(rm in RoomMembership,
+      where: rm.user_id == ^user.id,
+      join: r in assoc(rm, :room),
+      left_join: m in Message,
+      on: m.room_id == rm.room_id and m.id > rm.last_read_id,
+      group_by: [r.id, rm.id],
+      select: {r, count(m.id)}
+    )
+    |> Repo.all()
+    |> Enum.sort_by(fn {room, _unread_count} -> room.name end)
   end
 
   def joined?(%Room{} = room, %User{} = user) do
@@ -82,7 +98,7 @@ defmodule Slax.Chat do
 
   def get_last_read_id(%Room{} = room, user) do
     case get_membership(room, user) do
-      %RoomMembership{} = membership ->  membership.last_read_id
+      %RoomMembership{} = membership -> membership.last_read_id
       nil -> nil
     end
   end
@@ -97,7 +113,9 @@ defmodule Slax.Chat do
         membership
         |> change(%{last_read_id: id})
         |> Repo.update()
-      nil -> nil
+
+      nil ->
+        nil
     end
   end
 
@@ -115,8 +133,10 @@ defmodule Slax.Chat do
     end
   end
 
-  def subscribe_to_room(room) do
-    Phoenix.PubSub.subscribe(@pubsub, topic(room.id))
+  def subscribe_to_rooms(rooms) do
+    for room <- rooms do
+      Phoenix.PubSub.subscribe(@pubsub, topic(room.id))
+    end
   end
 
   defp topic(room_id), do: "chat_room:#{room_id}"

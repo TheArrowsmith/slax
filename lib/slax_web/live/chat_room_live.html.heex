@@ -12,7 +12,7 @@
     </div>
     <div id="rooms-list">
       <.link
-        :for={room <- @rooms}
+        :for={{room, unread_count} <- @rooms}
         class={[
           "flex items-center h-8 text-sm pl-8 pr-3",
           (room.id == @room.id && "bg-slate-300") || "hover:bg-slate-300"
@@ -34,6 +34,7 @@
         <span class={["ml-2 leading-none", room.id == @room.id && "font-bold"]}>
           <%= room.name %>
         </span>
+        <.unread_message_counter count={unread_count} />
       </.link>
       <button class="group relative flex items-center h-8 text-sm pl-8 pr-3 hover:bg-slate-300 cursor-pointer w-full">
         <svg

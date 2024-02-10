@@ -4,7 +4,7 @@ defmodule SlaxWeb.ChatRoomLive do
   alias Slax.Accounts
   alias Slax.Accounts.User
   alias Slax.Chat
-  alias Slax.Chat.Message
+  alias Slax.Chat.{Message, Room}
   alias SlaxWeb.OnlineUsers
 
   @impl true
@@ -14,6 +14,8 @@ defmodule SlaxWeb.ChatRoomLive do
 
     OnlineUsers.track(self(), socket.assigns.current_user)
     OnlineUsers.subscribe()
+
+    rooms |> Enum.map(&elem(&1, 0)) |> Chat.subscribe_to_rooms()
 
     socket =
       socket
@@ -49,8 +51,6 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def maybe_update_room(socket, room) do
-    Chat.subscribe_to_room(room)
-
     last_read_id = Chat.get_last_read_id(room, socket.assigns.current_user)
 
     messages =
@@ -64,6 +64,14 @@ defmodule SlaxWeb.ChatRoomLive do
     |> assign(room: room, joined?: Chat.joined?(room, socket.assigns.current_user))
     |> scroll_messages_to_bottom()
     |> stream(:messages, messages, reset: true)
+    |> update(:rooms, fn rooms ->
+      room_id = room.id
+
+      Enum.map(rooms, fn
+        {%Room{id: ^room_id} = room, _} -> {room, 0}
+        other -> other
+      end)
+    end)
   end
 
   defp maybe_insert_unread_marker(messages, nil), do: messages
@@ -142,14 +150,25 @@ defmodule SlaxWeb.ChatRoomLive do
     %{room: room} = socket.assigns
 
     socket =
-      if message.room_id == room.id do
-        Chat.update_last_read_id(room, socket.assigns.current_user)
+      cond do
+        message.room_id == room.id ->
+          Chat.update_last_read_id(room, socket.assigns.current_user)
+          socket
+          |> stream_insert(:messages, message)
+          |> scroll_messages_to_bottom()
 
-        socket
-        |> stream_insert(:messages, message)
-        |> scroll_messages_to_bottom()
-      else
-        socket
+        message.user_id != socket.assigns.current_user.id ->
+          message_room_id = message.room_id
+
+          update(socket, :rooms, fn rooms ->
+            Enum.map(rooms, fn
+              {%Room{id: id} = room, count} when id == message_room_id -> {room, count + 1}
+              other -> other
+            end)
+          end)
+
+        true ->
+          socket
       end
 
     {:noreply, socket}
@@ -220,6 +239,19 @@ defmodule SlaxWeb.ChatRoomLive do
       </div>
       <span class={"ml-2 leading-none #{!@online && "text-gray-500"}"}><%= @user.username %></span>
     </.link>
+    """
+  end
+
+  attr :count, :integer, required: true
+
+  defp unread_message_counter(assigns) do
+    ~H"""
+    <span
+      :if={@count > 0}
+      class="flex items-center justify-center bg-blue-500 rounded-full font-medium h-5 px-2 ml-auto text-xs text-white"
+    >
+      <%= @count %>
+    </span>
     """
   end
 
