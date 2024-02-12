@@ -41,6 +41,7 @@ defmodule SlaxWeb.ChatRoomLive do
     socket
     |> assign(room: room)
     |> stream(:messages, Chat.list_messages_in_room(room), reset: true)
+    |> scroll_messages_to_bottom()
   end
 
   @impl true
@@ -86,7 +87,9 @@ defmodule SlaxWeb.ChatRoomLive do
   def handle_info({:new_message, message}, socket) do
     socket =
       if message.room_id == socket.assigns.room.id do
-        stream_insert(socket, :messages, message)
+        socket
+        |> stream_insert(:messages, message)
+        |> scroll_messages_to_bottom()
       else
         socket
       end
@@ -128,5 +131,9 @@ defmodule SlaxWeb.ChatRoomLive do
 
   defp message_timestamp(message) do
     Timex.format!(message.inserted_at, "%-l:%M %p", :strftime)
+  end
+
+  defp scroll_messages_to_bottom(socket) do
+    push_event(socket, "scroll_messages_to_bottom", %{})
   end
 end

@@ -54,7 +54,12 @@
     </div>
     <div class="text-sm leading-10"><%= @current_user.username %></div>
   </div>
-  <div id="room-messages" phx-update="stream" class="flex flex-col flex-grow overflow-auto">
+  <div
+    id="room-messages"
+    phx-update="stream"
+    class="flex flex-col flex-grow overflow-auto"
+    phx-hook="RoomMessages"
+  >
     <.message
       :for={{html_id, message} <- @streams.messages}
       html_id={html_id}
@@ -64,6 +69,7 @@
   </div>
   <div class="h-12 bg-white px-4 pb-4">
     <.form
+      id="new-message-form"
       for={@new_message_form}
       phx-change="validate-message"
       phx-submit="submit-message"
@@ -71,9 +77,11 @@
     >
       <textarea
         class="flex-grow text-sm px-3 border-l border-slate-300 mx-1 resize-none"
-        placeholder={"Message ##{@room.name}"}
-        name={@new_message_form[:body].name}
         cols=""
+        id="chat-message-textarea"
+        name={@new_message_form[:body].name}
+        phx-hook="ChatMessageTextarea"
+        placeholder={"Message ##{@room.name}"}
         rows="1"
       ><%= Phoenix.HTML.Form.normalize_value("textarea", @new_message_form[:body].value) %></textarea>
       <button class="flex-shrink flex items-center justify-center h-6 w-6 rounded hover:bg-slate-200">
