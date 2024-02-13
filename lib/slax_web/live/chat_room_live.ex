@@ -26,6 +26,7 @@ defmodule SlaxWeb.ChatRoomLive do
         dom_id: fn
           %Message{id: id} -> "messages-#{id}"
           :unread_marker -> "messages-unread-marker"
+          %Date{} = date -> to_string(date)
         end
       )
 
@@ -56,6 +57,7 @@ defmodule SlaxWeb.ChatRoomLive do
     messages =
       room
       |> Chat.list_messages_in_room()
+      |> insert_date_markers()
       |> maybe_insert_unread_marker(last_read_id)
 
     Chat.update_last_read_id(room, socket.assigns.current_user)
@@ -74,10 +76,19 @@ defmodule SlaxWeb.ChatRoomLive do
     end)
   end
 
+  defp insert_date_markers(messages) do
+    messages
+    |> Enum.group_by(&NaiveDateTime.to_date(&1.inserted_at))
+    |> Enum.flat_map(fn {date, messages} -> [date | messages] end)
+  end
+
   defp maybe_insert_unread_marker(messages, nil), do: messages
 
   defp maybe_insert_unread_marker(messages, last_read_id) do
-    {read, unread} = Enum.split_while(messages, &(&1.id <= last_read_id))
+    {read, unread} = Enum.split_while(messages, fn
+      %Message{} = message -> message.id <= last_read_id
+      _ -> true
+    end)
 
     if unread == [] do
       read
@@ -211,6 +222,57 @@ defmodule SlaxWeb.ChatRoomLive do
       </div>
     </div>
     """
+  end
+
+  def message_or_divider(%{message: :unread_marker} = assigns) do
+    ~H"""
+    <.unread_messages_divider html_id={@html_id} />
+    """
+  end
+
+  def message_or_divider(%{message: %Date{}} = assigns) do
+    ~H"""
+    <.date_divider html_id={@html_id} date={@message} />
+    """
+  end
+
+  def message_or_divider(%{message: %Message{}} = assigns) do
+    ~H"""
+    <.message html_id={@html_id} message={@message} current_user={@current_user} />
+    """
+  end
+
+  defp date_divider(assigns) do
+    ~H"""
+    <div id={@html_id} class="flex flex-col items-center mt-2">
+      <hr class="w-full">
+      <span class="flex items-center justify-center -mt-3 bg-white h-6 px-3 rounded-full border text-xs font-semibold mx-auto"><%= format_date(@date) %></span>
+    </div>
+    """
+  end
+
+  defp format_date(%Date{} = date) do
+    today = Date.utc_today()
+    case Date.diff(today, date) do
+      0 ->
+        "Today"
+
+      1 ->
+        "Yesterday"
+
+      _ ->
+        format_str = "%A, %B %e#{ordinal(date.day)}#{if today.year != date.year, do: " %Y"}"
+        Timex.format!(date, format_str, :strftime)
+    end
+  end
+
+  defp ordinal(day) do
+    cond do
+      rem(day, 10) == 1 and day != 11 -> "st"
+      rem(day, 10) == 2 and day != 12 -> "nd"
+      rem(day, 10) == 3 and day != 13 -> "rd"
+      true -> "th"
+    end
   end
 
   attr :html_id, :string, required: true
