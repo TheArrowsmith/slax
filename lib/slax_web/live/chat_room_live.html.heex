@@ -54,6 +54,14 @@
           <div class="w-full text-left">
             <div class="hover:bg-sky-600">
               <div
+                phx-click="show-new-room-modal"
+                class="cursor-pointer whitespace-nowrap text-gray-800 hover:text-white px-6 py-1 block"
+              >
+                Create a new room
+              </div>
+            </div>
+            <div class="hover:bg-sky-600">
+              <div
                 phx-click="browse-rooms"
                 class="cursor-pointer whitespace-nowrap text-gray-800 hover:text-white px-6 py-1"
               >
@@ -103,7 +111,8 @@
       :for={{html_id, message} <- @streams.messages}
       html_id={html_id}
       current_user={@current_user}
-      message={message} />
+      message={message}
+    />
   </div>
   <div :if={@joined?} class="h-12 bg-white px-4 pb-4">
     <.form
@@ -163,3 +172,25 @@
     </div>
   </div>
 </div>
+
+<.modal
+  :if={@live_action == :new}
+  id="new-room-modal"
+  show
+  on_cancel={JS.patch(~p"/rooms/#{@room}")}
+>
+  <.header>New chat room</.header>
+
+  <.simple_form
+    for={@new_room_form}
+    id="room-form"
+    phx-change="validate-room-form"
+    phx-submit="save-room-form"
+  >
+    <.input field={@new_room_form[:name]} type="text" label="Name" />
+    <.input field={@new_room_form[:topic]} type="text" label="Topic" />
+    <:actions>
+      <.button phx-disable-with="Creating..." class="w-full">Create</.button>
+    </:actions>
+  </.simple_form>
+</.modal>

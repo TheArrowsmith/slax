@@ -19,7 +19,7 @@ defmodule SlaxWeb.ChatRoomLive do
 
     socket =
       socket
-      |> assign_form(%Message{})
+      |> assign_message_form(%Message{})
       |> assign(rooms: rooms, users: users)
       |> assign(:online_users, OnlineUsers.list())
       |> stream_configure(:messages,
@@ -44,7 +44,12 @@ defmodule SlaxWeb.ChatRoomLive do
           Chat.get_room!(id)
       end
 
-    {:noreply, maybe_update_room(socket, room)}
+    socket =
+      socket
+      |> maybe_update_room(room)
+      |> maybe_assign_room_form()
+
+    {:noreply, socket}
   end
 
   def maybe_update_room(%{assigns: %{room: %{id: id}}} = socket, %{id: id}) do
@@ -76,6 +81,13 @@ defmodule SlaxWeb.ChatRoomLive do
     end)
   end
 
+  def maybe_assign_room_form(%{assigns: %{live_action: :new}} = socket) do
+    changeset = Chat.change_room(%Room{})
+    assign_room_form(socket, changeset)
+  end
+
+  def maybe_assign_room_form(socket), do: socket
+
   defp insert_date_markers(messages) do
     messages
     |> Enum.group_by(&NaiveDateTime.to_date(&1.inserted_at))
@@ -85,10 +97,11 @@ defmodule SlaxWeb.ChatRoomLive do
   defp maybe_insert_unread_marker(messages, nil), do: messages
 
   defp maybe_insert_unread_marker(messages, last_read_id) do
-    {read, unread} = Enum.split_while(messages, fn
-      %Message{} = message -> message.id <= last_read_id
-      _ -> true
-    end)
+    {read, unread} =
+      Enum.split_while(messages, fn
+        %Message{} = message -> message.id <= last_read_id
+        _ -> true
+      end)
 
     if unread == [] do
       read
@@ -118,6 +131,28 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   @impl true
+  def handle_event("save-room-form", %{"room" => room_params}, socket) do
+    case Chat.create_room(room_params) do
+      {:ok, room} ->
+        Chat.join_room(room, socket.assigns.current_user)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, "Created room")
+         |> update(:rooms, &([{room, 0} | &1] |> Enum.sort_by(fn {r, _} -> r.name end)))
+         |> push_patch(to: ~p"/rooms/#{room}")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign_room_form(socket, changeset)}
+    end
+  end
+
+  @impl true
+  def handle_event("show-new-room-modal", _, socket) do
+    {:noreply, push_patch(socket, to: ~p"/rooms/#{socket.assigns.room}/new")}
+  end
+
+  @impl true
   def handle_event("submit-message", %{"message" => message_params}, socket) do
     socket = maybe_submit_message(socket, message_params, socket.assigns.joined?)
     {:noreply, socket}
@@ -127,10 +162,20 @@ defmodule SlaxWeb.ChatRoomLive do
   def handle_event("validate-message", %{"message" => message_params}, socket) do
     message = Chat.change_message(%Message{}, message_params)
 
-    {:noreply, assign_form(socket, message)}
+    {:noreply, assign_message_form(socket, message)}
   end
 
-  def assign_form(socket, message) do
+  @impl true
+  def handle_event("validate-room-form", %{"room" => room_params}, socket) do
+    changeset =
+      socket.assigns.room
+      |> Chat.change_room(room_params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign_room_form(socket, changeset)}
+  end
+
+  def assign_message_form(socket, message) do
     form =
       message
       |> Chat.change_message()
@@ -147,7 +192,7 @@ defmodule SlaxWeb.ChatRoomLive do
     socket =
       case Chat.create_message(room, message_params, current_user) do
         {:ok, _message} ->
-          assign_form(socket, %Message{})
+          assign_message_form(socket, %Message{})
 
         {:error, _changeset} ->
           socket
@@ -164,6 +209,7 @@ defmodule SlaxWeb.ChatRoomLive do
       cond do
         message.room_id == room.id ->
           Chat.update_last_read_id(room, socket.assigns.current_user)
+
           socket
           |> stream_insert(:messages, message)
           |> scroll_messages_to_bottom()
@@ -245,14 +291,17 @@ defmodule SlaxWeb.ChatRoomLive do
   defp date_divider(assigns) do
     ~H"""
     <div id={@html_id} class="flex flex-col items-center mt-2">
-      <hr class="w-full">
-      <span class="flex items-center justify-center -mt-3 bg-white h-6 px-3 rounded-full border text-xs font-semibold mx-auto"><%= format_date(@date) %></span>
+      <hr class="w-full" />
+      <span class="flex items-center justify-center -mt-3 bg-white h-6 px-3 rounded-full border text-xs font-semibold mx-auto">
+        <%= format_date(@date) %>
+      </span>
     </div>
     """
   end
 
   defp format_date(%Date{} = date) do
     today = Date.utc_today()
+
     case Date.diff(today, date) do
       0 ->
         "Today"
@@ -323,5 +372,9 @@ defmodule SlaxWeb.ChatRoomLive do
 
   defp scroll_messages_to_bottom(socket) do
     push_event(socket, "scroll_messages_to_bottom", %{})
+  end
+
+  defp assign_room_form(socket, changeset) do
+    assign(socket, :new_room_form, to_form(changeset))
   end
 end
