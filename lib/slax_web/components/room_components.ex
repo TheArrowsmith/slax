@@ -2,6 +2,7 @@ defmodule SlaxWeb.RoomComponents do
   use SlaxWeb, :live_view
 
   attr :form, Phoenix.HTML.Form, required: true
+  attr :target, :string, default: nil
 
   def room_form(assigns) do
     ~H"""
@@ -10,6 +11,7 @@ defmodule SlaxWeb.RoomComponents do
       id="room-form"
       phx-change="validate-room"
       phx-submit="save-room"
+      phx-target={@target}
     >
       <.input field={@form[:name]} type="text" label="Name" />
       <.input field={@form[:topic]} type="text" label="Topic" />

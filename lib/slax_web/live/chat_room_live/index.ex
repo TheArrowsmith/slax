@@ -1,14 +1,21 @@
 defmodule SlaxWeb.ChatRoomLive.Index do
   use SlaxWeb, :live_view
 
+  alias Phoenix.LiveView.JS
   alias Slax.Chat
 
   @impl true
   def render(assigns) do
     ~H"""
     <main class="flex-1 p-6 max-w-4xl mx-auto">
-      <div class="mb-4">
+      <div class="flex justify-between mb-4 items-center">
         <h2 class="text-xl font-semibold">All rooms</h2>
+        <button
+          phx-click="show-form"
+          class="bg-white font-semibold py-2 px-4 border border-slate-400 rounded shadow-sm"
+        >
+          Create room
+        </button>
       </div>
       <div class="bg-slate-50 border rounded">
         <div class="divide-y">
@@ -53,6 +60,15 @@ defmodule SlaxWeb.ChatRoomLive.Index do
         </div>
       </div>
     </main>
+
+    <.modal :if={@show_form} id="new-room-modal" show on_cancel={JS.push("hide-form")}>
+      <.header>New chat room</.header>
+
+      <.live_component
+        module={SlaxWeb.ChatRoomLive.FormComponent}
+        id="index"
+      />
+    </.modal>
     """
   end
 
@@ -62,10 +78,21 @@ defmodule SlaxWeb.ChatRoomLive.Index do
 
     socket =
       socket
+      |> assign(show_form: false)
       |> stream_configure(:rooms, dom_id: fn {room, _} -> "rooms-#{room.id}" end)
       |> stream(:rooms, rooms)
 
     {:ok, socket}
+  end
+
+  @impl true
+  def handle_event("hide-form", _params, socket) do
+    {:noreply, assign(socket, show_form: false)}
+  end
+
+  @impl true
+  def handle_event("show-form", _params, socket) do
+    {:noreply, assign(socket, show_form: true)}
   end
 
   @impl true
@@ -81,5 +108,15 @@ defmodule SlaxWeb.ChatRoomLive.Index do
   @impl true
   def handle_event("view-room", %{"id" => id}, socket) do
     {:noreply, push_navigate(socket, to: ~p"/rooms/#{id}")}
+  end
+
+  @impl true
+  def handle_info({SlaxWeb.ChatRoomLive.FormComponent, {:created, room}}, socket) do
+    Chat.join_room(room, socket.assigns.current_user)
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Created room")
+     |> push_navigate(to: ~p"/rooms/#{room}")}
   end
 end

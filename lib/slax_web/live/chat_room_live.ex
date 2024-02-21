@@ -7,8 +7,6 @@ defmodule SlaxWeb.ChatRoomLive do
   alias Slax.Chat.{Message, Room}
   alias SlaxWeb.OnlineUsers
 
-  import SlaxWeb.RoomComponents
-
   @impl true
   def mount(_params, _session, socket) do
     rooms = Chat.list_joined_rooms(socket.assigns.current_user)
@@ -46,12 +44,7 @@ defmodule SlaxWeb.ChatRoomLive do
           Chat.get_room!(id)
       end
 
-    socket =
-      socket
-      |> maybe_update_room(room)
-      |> maybe_assign_room_form()
-
-    {:noreply, socket}
+    {:noreply, maybe_update_room(socket, room)}
   end
 
   def maybe_update_room(%{assigns: %{room: %{id: id}}} = socket, %{id: id}) do
@@ -82,13 +75,6 @@ defmodule SlaxWeb.ChatRoomLive do
       end)
     end)
   end
-
-  def maybe_assign_room_form(%{assigns: %{live_action: :new}} = socket) do
-    changeset = Chat.change_room(%Room{})
-    assign_room_form(socket, changeset)
-  end
-
-  def maybe_assign_room_form(socket), do: socket
 
   defp insert_date_markers(messages) do
     messages
@@ -133,23 +119,6 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   @impl true
-  def handle_event("save-room", %{"room" => room_params}, socket) do
-    case Chat.create_room(room_params) do
-      {:ok, room} ->
-        Chat.join_room(room, socket.assigns.current_user)
-
-        {:noreply,
-         socket
-         |> put_flash(:info, "Created room")
-         |> update(:rooms, &([{room, 0} | &1] |> Enum.sort_by(fn {r, _} -> r.name end)))
-         |> push_patch(to: ~p"/rooms/#{room}")}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign_room_form(socket, changeset)}
-    end
-  end
-
-  @impl true
   def handle_event("show-new-room-modal", _, socket) do
     {:noreply, push_patch(socket, to: ~p"/rooms/#{socket.assigns.room}/new")}
   end
@@ -165,16 +134,6 @@ defmodule SlaxWeb.ChatRoomLive do
     message = Chat.change_message(%Message{}, message_params)
 
     {:noreply, assign_message_form(socket, message)}
-  end
-
-  @impl true
-  def handle_event("validate-room", %{"room" => room_params}, socket) do
-    changeset =
-      socket.assigns.room
-      |> Chat.change_room(room_params)
-      |> Map.put(:action, :validate)
-
-    {:noreply, assign_room_form(socket, changeset)}
   end
 
   def assign_message_form(socket, message) do
@@ -236,6 +195,17 @@ defmodule SlaxWeb.ChatRoomLive do
   @impl true
   def handle_info({:message_deleted, message}, socket) do
     {:noreply, stream_delete(socket, :messages, message)}
+  end
+
+  @impl true
+  def handle_info({:room_created, room}, socket) do
+    Chat.join_room(room, socket.assigns.current_user)
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Created room")
+     |> update(:rooms, &([{room, 0} | &1] |> Enum.sort_by(fn {r, _} -> r.name end)))
+     |> push_patch(to: ~p"/rooms/#{room}")}
   end
 
   @impl true
@@ -374,9 +344,5 @@ defmodule SlaxWeb.ChatRoomLive do
 
   defp scroll_messages_to_bottom(socket) do
     push_event(socket, "scroll_messages_to_bottom", %{})
-  end
-
-  defp assign_room_form(socket, changeset) do
-    assign(socket, :new_room_form, to_form(changeset))
   end
 end
