@@ -7,6 +7,8 @@ defmodule SlaxWeb.ChatRoomLive do
   alias Slax.Chat.{Message, Room}
   alias SlaxWeb.OnlineUsers
 
+  import SlaxWeb.RoomComponents
+
   @impl true
   def mount(_params, _session, socket) do
     rooms = Chat.list_joined_rooms(socket.assigns.current_user)
@@ -131,7 +133,7 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   @impl true
-  def handle_event("save-room-form", %{"room" => room_params}, socket) do
+  def handle_event("save-room", %{"room" => room_params}, socket) do
     case Chat.create_room(room_params) do
       {:ok, room} ->
         Chat.join_room(room, socket.assigns.current_user)
@@ -166,7 +168,7 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   @impl true
-  def handle_event("validate-room-form", %{"room" => room_params}, socket) do
+  def handle_event("validate-room", %{"room" => room_params}, socket) do
     changeset =
       socket.assigns.room
       |> Chat.change_room(room_params)
