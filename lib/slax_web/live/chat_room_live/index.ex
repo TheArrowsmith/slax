@@ -64,10 +64,7 @@ defmodule SlaxWeb.ChatRoomLive.Index do
     <.modal :if={@show_form} id="new-room-modal" show on_cancel={JS.push("hide-form")}>
       <.header>New chat room</.header>
 
-      <.live_component
-        module={SlaxWeb.ChatRoomLive.FormComponent}
-        id="index"
-      />
+      <.live_component module={SlaxWeb.ChatRoomLive.FormComponent} id="index" />
     </.modal>
     """
   end

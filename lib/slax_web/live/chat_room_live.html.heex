@@ -99,7 +99,11 @@
       </h1>
       <div class="text-xs leading-none h-3.5"><%= @room.topic %></div>
     </div>
-    <div class="text-sm leading-10"><%= @current_user.username %></div>
+    <div class="text-sm leading-10">
+      <.link phx-click="show-profile" phx-value-user-id={@current_user.id}>
+        <span class="hover:underline"><%= @current_user.username %></span>
+      </.link>
+    </div>
   </div>
   <div
     id="room-messages"
@@ -173,6 +177,16 @@
   </div>
 </div>
 
+<%= if assigns[:profile] do %>
+  <.live_component
+    id="profile"
+    current_user={@current_user}
+    module={SlaxWeb.ChatRoomLive.ProfileComponent}
+    online={@profile.id in @online_users}
+    user={@profile}
+  />
+<% end %>
+
 <.modal
   :if={@live_action == :new}
   id="new-room-modal"
@@ -181,8 +195,5 @@
 >
   <.header>New chat room</.header>
 
-  <.live_component
-    module={SlaxWeb.ChatRoomLive.FormComponent}
-    id={@room.id}
-  />
+  <.live_component module={SlaxWeb.ChatRoomLive.FormComponent} id={@room.id} />
 </.modal>

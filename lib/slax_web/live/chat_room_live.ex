@@ -104,6 +104,11 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   @impl true
+  def handle_event("close-profile", _, socket) do
+    {:noreply, assign(socket, :profile, nil)}
+  end
+
+  @impl true
   def handle_event("delete-message", %{"id" => id}, socket) do
     Chat.delete_message_by_id(id, socket.assigns.current_user)
 
@@ -121,6 +126,12 @@ defmodule SlaxWeb.ChatRoomLive do
   @impl true
   def handle_event("show-new-room-modal", _, socket) do
     {:noreply, push_patch(socket, to: ~p"/rooms/#{socket.assigns.room}/new")}
+  end
+
+  @impl true
+  def handle_event("show-profile", %{"user-id" => user_id}, socket) do
+    user = Accounts.get_user!(user_id)
+    {:noreply, assign(socket, :profile, user)}
   end
 
   @impl true
@@ -230,10 +241,20 @@ defmodule SlaxWeb.ChatRoomLive do
       >
         <.icon :if={@current_user.id == @message.user.id} name="hero-trash" class="h-4 w-4" />
       </button>
-      <div class="h-10 w-10 rounded flex-shrink-0 bg-slate-300"></div>
+      <%= if @message.user.avatar_path do %>
+        <img src={@message.user.avatar_path} class="h-10 w-10 rounded flex-shrink-0 bg-slate-300" />
+      <% else %>
+        <div class="h-10 w-10 rounded flex-shrink-0 bg-slate-300"></div>
+      <% end %>
       <div class="ml-2">
         <div class="-mt-1">
-          <span class="text-sm font-semibold"><%= @message.user.username %></span>
+          <.link
+            phx-click="show-profile"
+            phx-value-user-id={@message.user.id}
+            class="text-sm font-semibold"
+          >
+            <span class="hover:underline"><%= @message.user.username %></span>
+          </.link>
           <span class="ml-1 text-xs text-gray-500"><%= message_timestamp(@message) %></span>
         </div>
         <p class="text-sm"><%= @message.body %></p>
