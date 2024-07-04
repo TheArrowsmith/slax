@@ -79,7 +79,12 @@ defmodule SlaxWeb.ChatRoomLive do
         </ul>
       </div>
       <div id="room-messages" class="flex flex-col flex-grow overflow-auto" phx-update="stream">
-        <.message :for={{dom_id, message} <- @streams.messages} dom_id={dom_id} message={message} />
+        <.message
+          :for={{dom_id, message} <- @streams.messages}
+          dom_id={dom_id}
+          message={message}
+          timezone={@timezone}
+        />
       </div>
       <div class="h-12 bg-white px-4 pb-4">
         <.form
@@ -109,6 +114,7 @@ defmodule SlaxWeb.ChatRoomLive do
 
   attr :dom_id, :string, required: true
   attr :message, Message, required: true
+  attr :timezone, :string, required: true
 
   defp message(assigns) do
     ~H"""
@@ -119,7 +125,9 @@ defmodule SlaxWeb.ChatRoomLive do
           <.link class="text-sm font-semibold hover:underline">
             <span><%= username(@message.user) %></span>
           </.link>
-          <span class="ml-1 text-xs text-gray-500"><%= message_timestamp(@message) %></span>
+          <span :if={@timezone} class="ml-1 text-xs text-gray-500">
+            <%= message_timestamp(@message, @timezone) %>
+          </span>
           <p class="text-sm"><%= @message.body %></p>
         </div>
       </div>
@@ -127,8 +135,9 @@ defmodule SlaxWeb.ChatRoomLive do
     """
   end
 
-  defp message_timestamp(message) do
+  defp message_timestamp(message, timezone) do
     message.inserted_at
+    |> Timex.Timezone.convert(timezone)
     |> Timex.format!("%-l:%M %p", :strftime)
   end
 
@@ -159,7 +168,9 @@ defmodule SlaxWeb.ChatRoomLive do
   def mount(_params, _session, socket) do
     rooms = Chat.list_rooms()
 
-    {:ok, assign(socket, rooms: rooms)}
+    timezone = get_connect_params(socket)["timezone"]
+
+    {:ok, assign(socket, rooms: rooms, timezone: timezone)}
   end
 
   def handle_params(params, _session, socket) do
