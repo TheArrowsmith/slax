@@ -23,6 +23,22 @@ defmodule SlaxWeb.ChatRoomLive do
         </div>
         <div id="rooms-list">
           <.room_link :for={room <- @rooms} room={room} active={room.id == @room.id} />
+          <button class="group relative flex items-center h-8 text-sm pl-8 pr-3 hover:bg-slate-300 cursor-pointer w-full">
+            <.icon name="hero-plus" class="h-4 w-4 relative top-px" />
+            <span class="ml-2 leading-none">Add rooms</span>
+            <div class="hidden group-focus:block cursor-default absolute top-8 right-2 bg-white border-slate-200 border py-3 rounded-lg">
+              <div class="w-full text-left">
+                <div class="hover:bg-sky-600">
+                  <div
+                    phx-click={JS.navigate(~p"/rooms")}
+                    class="cursor-pointer whitespace-nowrap text-gray-800 hover:text-white px-6 py-1"
+                  >
+                    Browse rooms
+                  </div>
+                </div>
+              </div>
+            </div>
+          </button>
         </div>
         <div class="mt-4">
           <div class="flex items-center h-8 px-3">
