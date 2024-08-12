@@ -93,9 +93,9 @@ defmodule SlaxWeb.ChatRoomLive.ProfileComponent do
       end)
       |> List.first()
 
-    {:ok, user} = Accounts.save_user_avatar_path(socket.assigns.current_user, avatar_path)
+    {:ok, _user} = Accounts.save_user_avatar_path(socket.assigns.current_user, avatar_path)
 
-    {:noreply, assign(socket, :user, user)}
+    {:noreply, socket}
   end
 
   def handle_event("validate-avatar", _, socket), do: {:noreply, socket}
