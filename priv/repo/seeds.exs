@@ -27,8 +27,9 @@ names = [
 pw = "TheFellowship"
 
 for name <- names do
-  email = (name |> String.downcase()) <> "@fellowship.me"
-  Accounts.register_user(%{email: email, password: pw, password_confirmation: pw})
+  username = name |> String.downcase()
+  email = username <> "@fellowship.me"
+  Accounts.register_user(%{email: email, password: pw, password_confirmation: pw, username: username})
 end
 
 elrond = Accounts.get_user_by_email("elrond@fellowship.me")
