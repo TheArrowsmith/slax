@@ -120,6 +120,15 @@ defmodule SlaxWeb.ChatRoomLive do
           </li>
         </ul>
       </div>
+      <div :if={@message_cursor} class="flex justify-around my-2">
+        <button
+          id="load-more-button"
+          phx-click="load-more-messages"
+          class="border border-green-200 bg-green-50 py-1 px-3 rounded"
+        >
+          Load more
+        </button>
+      </div>
       <div
         id="room-messages"
         class="flex flex-col flex-grow overflow-auto"
@@ -380,22 +389,20 @@ defmodule SlaxWeb.ChatRoomLive do
 
     last_read_id = Chat.get_last_read_id(room, socket.assigns.current_user)
 
-    messages =
-      room
-      |> Chat.list_messages_in_room()
-      |> insert_date_dividers(socket.assigns.timezone)
-      |> maybe_insert_unread_marker(last_read_id)
+    page = Chat.list_messages_in_room(room)
 
     Chat.update_last_read_id(room, socket.assigns.current_user)
 
     socket
     |> assign(
       hide_topic?: false,
+      last_read_id: last_read_id,
       joined?: Chat.joined?(room, socket.assigns.current_user),
       page_title: "#" <> room.name,
       room: room
     )
-    |> stream(:messages, messages, reset: true)
+    |> stream(:messages, [], reset: true)
+    |> stream_message_page(page)
     |> assign_message_form(Chat.change_message(%Message{}))
     |> push_event("scroll_messages_to_bottom", %{})
     |> update(:rooms, fn rooms ->
@@ -420,6 +427,21 @@ defmodule SlaxWeb.ChatRoomLive do
     end)
     |> Enum.sort_by(fn {date, _msgs} -> date end, &(Date.compare(&1, &2) != :gt))
     |> Enum.flat_map(fn {date, messages} -> [date | messages] end)
+  end
+
+  defp stream_message_page(socket, %Paginator.Page{} = page) do
+    last_read_id = socket.assigns.last_read_id
+
+    messages =
+      page.entries
+      |> Enum.reverse()
+      |> insert_date_dividers(socket.assigns.timezone)
+      |> maybe_insert_unread_marker(last_read_id)
+      |> Enum.reverse()
+
+    socket
+    |> stream(:messages, messages, at: 0)
+    |> assign(:message_cursor, page.metadata.after)
   end
 
   defp maybe_insert_unread_marker(messages, nil), do: messages
@@ -474,6 +496,18 @@ defmodule SlaxWeb.ChatRoomLive do
       )
 
     {:noreply, socket}
+  end
+
+  def handle_event("load-more-messages", _, socket) do
+    page =
+      Chat.list_messages_in_room(
+        socket.assigns.room,
+        after: socket.assigns.message_cursor
+      )
+
+    socket
+    |> stream_message_page(page)
+    |> noreply()
   end
 
   def handle_event("submit-message", %{"message" => message_params}, socket) do
