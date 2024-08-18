@@ -21,6 +21,19 @@ defmodule SlaxWeb.ChatComponents do
       >
         <button
           :if={!@in_thread?}
+          phx-click={
+            JS.dispatch(
+              "show_emoji_picker",
+              detail: %{message_id: @message.id}
+            )
+          }
+          class="reaction-menu-button text-slate-500 hover:text-slate-600 cursor-pointer"
+        >
+          <.icon name="hero-face-smile" class="h-5 w-5" />
+        </button>
+
+        <button
+          :if={!@in_thread?}
           phx-click="show-thread"
           phx-value-id={@message.id}
           class="text-slate-500 hover:text-slate-600 cursor-pointer"
