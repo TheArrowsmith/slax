@@ -83,7 +83,7 @@ defmodule SlaxWeb.ChatRoomLive do
           List.first(rooms)
       end
 
-    {:noreply, assign(socket, room: room, hide_topic?: false)}
+    {:noreply, assign(socket, hide_topic?: false, page_title: "#" <> room.name, room: room)}
   end
 
   def handle_event("toggle-topic", _params, socket) do
