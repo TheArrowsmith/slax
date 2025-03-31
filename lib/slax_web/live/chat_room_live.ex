@@ -127,26 +127,30 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def handle_params(params, _uri, socket) do
-    rooms = socket.assigns.rooms
-
     room =
       case Map.fetch(params, "id") do
         {:ok, id} ->
           Chat.get_room!(id)
 
         :error ->
-          List.first(rooms)
+          List.first(socket.assigns.rooms)
       end
 
-    messages = Chat.list_messages_in_room(room)
+     messages = Chat.list_messages_in_room(room)
 
-    {:noreply,
-     assign(socket,
+     {:noreply,
+      socket
+      |> assign(
        hide_topic?: false,
        messages: messages,
        page_title: "#" <> room.name,
        room: room
-     )}
+      )
+      |> assign_message_form(Chat.change_message(%Message{}))}
+  end
+
+  defp assign_message_form(socket, changeset) do
+    assign(socket, :new_message_form, to_form(changeset))
   end
 
   def handle_event("toggle-topic", _params, socket) do

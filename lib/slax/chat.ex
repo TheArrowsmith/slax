@@ -36,4 +36,8 @@ defmodule Slax.Chat do
     |> preload(:user)
     |> Repo.all()
   end
+
+  def change_message(message, attrs \\ %{}) do
+    Message.changeset(message, attrs)
+  end
 end
