@@ -33,6 +33,7 @@ defmodule Slax.Chat do
     Message
     |> where([m], m.room_id == ^room_id)
     |> order_by([m], asc: :inserted_at, asc: :id)
+    |> preload(:user)
     |> Repo.all()
   end
 end
