@@ -114,13 +114,13 @@ defmodule SlaxWeb.ChatRoomLive do
 
   defp message(assigns) do
     ~H"""
-    <div id={@dom_id} class="relative flex px-4 py-3">
+    <div id={@dom_id} class="group relative flex px-4 py-3">
       <button
         :if={@current_user.id == @message.user_id}
         data-confirm="Are you sure?"
         phx-click="delete-message"
         phx-value-id={@message.id}
-        class="absolute top-4 right-4 text-red-500 hover:text-red-800 cursor-pointer"
+        class="absolute top-4 right-4 text-red-500 hover:text-red-800 cursor-pointer hidden group-hover:block"
       >
         <.icon name="hero-trash" class="h-4 w-4" />
       </button>
