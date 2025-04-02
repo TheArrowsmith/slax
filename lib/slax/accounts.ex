@@ -6,7 +6,7 @@ defmodule Slax.Accounts do
   import Ecto.Query, warn: false
   alias Slax.Repo
 
-  alias Slax.Accounts.{User, UserToken, UserNotifier}
+  alias Slax.Accounts.{User, UserNotifier, UserToken}
 
   ## Database getters
 
