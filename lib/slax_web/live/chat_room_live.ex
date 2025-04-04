@@ -1,10 +1,12 @@
 defmodule SlaxWeb.ChatRoomLive do
   use SlaxWeb, :live_view
 
+  alias Slax.Accounts
   alias Slax.Accounts.User
   alias Slax.Chat
   alias Slax.Chat.Message
   alias Slax.Chat.Room
+  alias SlaxWeb.OnlineUsers
 
   def render(assigns) do
     ~H"""
@@ -22,6 +24,20 @@ defmodule SlaxWeb.ChatRoomLive do
         </div>
         <div id="rooms-list">
           <.room_link :for={room <- @rooms} room={room} active={room.id == @room.id} />
+        </div>
+        <div class="mt-4">
+          <div class="flex items-center h-8 px-3">
+            <div class="flex items-center grow">
+              <span class="ml-2 leading-none font-medium text-sm">Users</span>
+            </div>
+          </div>
+          <div id="users-list">
+            <.user
+              :for={user <- @users}
+              online={OnlineUsers.online?(@online_users, user.id)}
+              user={user}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -146,6 +162,24 @@ defmodule SlaxWeb.ChatRoomLive do
     """
   end
 
+  attr :user, User, required: true
+  attr :online, :boolean, default: false
+
+  defp user(assigns) do
+    ~H"""
+    <.link class="flex items-center h-8 hover:bg-gray-300 text-sm pl-8 pr-3" href="#">
+      <div class="flex justify-center w-4">
+        <%= if @online do %>
+          <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+        <% else %>
+          <span class="w-2 h-2 rounded-full border-2 border-gray-500"></span>
+        <% end %>
+      </div>
+      <span class="ml-2 leading-none">{username(@user)}</span>
+    </.link>
+    """
+  end
+
   defp username(user) do
     user.email |> String.split("@") |> List.first() |> String.capitalize()
   end
@@ -178,10 +212,20 @@ defmodule SlaxWeb.ChatRoomLive do
 
   def mount(_params, _session, socket) do
     rooms = Chat.list_rooms()
+    users = Accounts.list_users()
 
     timezone = get_connect_params(socket)["timezone"]
 
-    {:ok, assign(socket, rooms: rooms, timezone: timezone)}
+    if connected?(socket) do
+      OnlineUsers.track(self(), socket.assigns.current_user)
+    end
+
+    socket =
+      socket
+      |> assign(rooms: rooms, timezone: timezone, users: users)
+      |> assign(online_users: OnlineUsers.list())
+
+    {:ok, socket}
   end
 
   def handle_params(params, _uri, socket) do
