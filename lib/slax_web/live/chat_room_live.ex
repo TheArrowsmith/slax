@@ -22,6 +22,31 @@ defmodule SlaxWeb.ChatRoomLive do
         <.toggler on_click={toggle_rooms()} dom_id="rooms-toggler" text="Rooms" />
         <div id="rooms-list">
           <.room_link :for={room <- @rooms} room={room} active={room.id == @room.id} />
+
+          <div class="relative">
+            <button
+              class="flex items-center peer h-8 text-sm pl-8 pr-3 hover:bg-slate-300 cursor-pointer w-full"
+              phx-click={JS.toggle(to: "#sidebar-rooms-menu")}
+            >
+              <.icon name="hero-plus" class="h-4 w-4 relative top-px" />
+              <span class="ml-2 leading-none">Add rooms</span>
+            </button>
+
+            <div
+              id="sidebar-rooms-menu"
+              class="hidden cursor-default absolute top-8 right-2 bg-white border-slate-200 border py-3 rounded-lg"
+              phx-click-away={JS.hide()}
+            >
+              <div class="w-full text-left">
+                <.link
+                  class="block select-none cursor-pointer whitespace-nowrap text-gray-800 hover:text-white px-6 py-1 block hover:bg-sky-600"
+                  navigate={~p"/rooms"}
+                >
+                  Browse rooms
+                </.link>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="mt-4">
           <.toggler on_click={toggle_users()} dom_id="users-toggler" text="Users" />
