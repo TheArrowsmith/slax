@@ -19,18 +19,12 @@ defmodule SlaxWeb.ChatRoomLive do
         </div>
       </div>
       <div class="mt-4 overflow-auto">
-        <div class="flex items-center h-8 px-3">
-          <span class="ml-2 leading-none font-medium text-sm">Rooms</span>
-        </div>
+        <.toggler on_click={toggle_rooms()} dom_id="rooms-toggler" text="Rooms" />
         <div id="rooms-list">
           <.room_link :for={room <- @rooms} room={room} active={room.id == @room.id} />
         </div>
         <div class="mt-4">
-          <div class="flex items-center h-8 px-3">
-            <div class="flex items-center grow">
-              <span class="ml-2 leading-none font-medium text-sm">Users</span>
-            </div>
-          </div>
+          <.toggler on_click={toggle_users()} dom_id="users-toggler" text="Users" />
           <div id="users-list">
             <.user
               :for={user <- @users}
@@ -125,6 +119,29 @@ defmodule SlaxWeb.ChatRoomLive do
           </button>
         </.form>
       </div>
+    </div>
+    """
+  end
+
+  attr :dom_id, :string, required: true
+  attr :on_click, JS, required: true
+  attr :text, :string, required: true
+
+  defp toggler(assigns) do
+    ~H"""
+    <div class="flex items-center h-8 px-3">
+      <button id={@dom_id} phx-click={@on_click} class="flex items-center grow">
+        <.icon id={@dom_id <> "-chevron-down"} name="hero-chevron-down" class="h-4 w-4" />
+        <.icon
+          id={@dom_id <> "-chevron-right"}
+          name="hero-chevron-right"
+          class="h-4 w-4"
+          style="display:none;"
+        />
+        <span class="ml-2 leading-none font-medium text-sm">
+          {@text}
+        </span>
+      </button>
     </div>
     """
   end
@@ -310,5 +327,17 @@ defmodule SlaxWeb.ChatRoomLive do
     online_users = OnlineUsers.update(socket.assigns.online_users, diff)
 
     {:noreply, assign(socket, online_users: online_users)}
+  end
+
+  defp toggle_rooms do
+    JS.toggle(to: "#rooms-toggler-chevron-down")
+    |> JS.toggle(to: "#rooms-toggler-chevron-right")
+    |> JS.toggle(to: "#rooms-list")
+  end
+
+  defp toggle_users do
+    JS.toggle(to: "#users-toggler-chevron-down")
+    |> JS.toggle(to: "#users-toggler-chevron-right")
+    |> JS.toggle(to: "#users-list")
   end
 end
