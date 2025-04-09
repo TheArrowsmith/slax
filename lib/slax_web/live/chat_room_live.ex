@@ -213,7 +213,7 @@ defmodule SlaxWeb.ChatRoomLive do
         data-confirm="Are you sure?"
         phx-click="delete-message"
         phx-value-id={@message.id}
-        class="absolute top-4 right-4 text-red-500 hover:text-red-800 cursor-pointer hidden group-hover:block"
+        class="absolute top-4 right-4 text-red-500 hover:text-red-800 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100"
       >
         <.icon name="hero-trash" class="h-4 w-4" />
       </button>
