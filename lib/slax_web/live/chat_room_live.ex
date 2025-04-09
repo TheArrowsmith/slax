@@ -225,7 +225,7 @@ defmodule SlaxWeb.ChatRoomLive do
       >
         <.icon name="hero-trash" class="h-4 w-4" />
       </button>
-      <div class="h-10 w-10 rounded shrink-0 bg-slate-300"></div>
+      <img class="h-10 w-10 rounded shrink-0" src={~p"/images/one_ring.jpg"} />
       <div class="ml-2">
         <div class="-mt-1">
           <.link class="text-sm font-semibold hover:underline">
