@@ -114,13 +114,21 @@ defmodule SlaxWeb.ChatRoomLive do
         phx-hook="RoomMessages"
         phx-update="stream"
       >
-        <.message
-          :for={{dom_id, message} <- @streams.messages}
-          current_user={@current_user}
-          dom_id={dom_id}
-          message={message}
-          timezone={@timezone}
-        />
+        <%= for {dom_id, message} <- @streams.messages do %>
+          <%= if message == :unread_marker do %>
+            <div id={dom_id} class="w-full flex text-red-500 items-center gap-3 pr-5">
+              <div class="w-full h-px grow bg-red-500"></div>
+              <div class="text-sm">New</div>
+            </div>
+          <% else %>
+            <.message
+              current_user={@current_user}
+              dom_id={dom_id}
+              message={message}
+              timezone={@timezone}
+            />
+          <% end %>
+        <% end %>
       </div>
       <div :if={@joined?} class="h-12 bg-white px-4 pb-4">
         <.form
@@ -297,6 +305,12 @@ defmodule SlaxWeb.ChatRoomLive do
       socket
       |> assign(rooms: rooms, timezone: timezone, users: users)
       |> assign(online_users: OnlineUsers.list())
+      |> stream_configure(:messages,
+        dom_id: fn
+          %Message{id: id} -> "messages-#{id}"
+          :unread_marker -> "messages-unread-marker"
+        end
+      )
 
     {:ok, socket}
   end
@@ -389,6 +403,10 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def handle_info({:new_message, message}, socket) do
+    if message.room_id == socket.assigns.room.id do
+      Chat.update_last_read_at(message.room, socket.assigns.current_user)
+    end
+
     socket =
       socket
       |> stream_insert(:messages, message)
