@@ -21,6 +21,19 @@ defmodule Slax.Chat do
     |> Enum.sort_by(& &1.name)
   end
 
+  def list_joined_rooms_with_unread_counts(%User{} = user) do
+    from(room in Room,
+      join: membership in assoc(room, :memberships),
+      where: membership.user_id == ^user.id,
+      left_join: message in assoc(room, :messages),
+      on: message.inserted_at > membership.last_read_at,
+      group_by: room.id,
+      select: {room, count(message.id)},
+      order_by: [asc: room.name]
+    )
+    |> Repo.all()
+  end
+
   def list_rooms_with_joined(%User{} = user) do
     query =
       from r in Room,

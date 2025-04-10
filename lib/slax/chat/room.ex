@@ -12,6 +12,7 @@ defmodule Slax.Chat.Room do
 
     many_to_many :members, User, join_through: RoomMembership
 
+    has_many :memberships, RoomMembership
     has_many :messages, Message
 
     timestamps(type: :utc_datetime)
