@@ -305,9 +305,15 @@ defmodule SlaxWeb.ChatRoomLive do
     if socket.assigns[:room], do: Chat.unsubscribe_from_room(socket.assigns.room)
 
     room = params |> Map.fetch!("id") |> Chat.get_room!()
-    messages = Chat.list_messages_in_room(room)
+    last_read_at = Chat.get_last_read_at(room, socket.assigns.current_user)
+
+    messages =
+      room
+      |> Chat.list_messages_in_room()
+      |> maybe_insert_unread_marker(last_read_at)
 
     Chat.subscribe_to_room(room)
+    Chat.update_last_read_at(room, socket.assigns.current_user)
 
     {:noreply,
      socket
@@ -320,6 +326,19 @@ defmodule SlaxWeb.ChatRoomLive do
      |> stream(:messages, messages, reset: true)
      |> assign_message_form(Chat.change_message(%Message{}))
      |> push_event("scroll_messages_to_bottom", %{})}
+  end
+
+  defp maybe_insert_unread_marker(messages, nil), do: messages
+
+  defp maybe_insert_unread_marker(messages, last_read_at) do
+    {read, unread} =
+      Enum.split_while(messages, &(DateTime.compare(&1.inserted_at, last_read_at) != :gt))
+
+    if unread == [] do
+      read
+    else
+      read ++ [:unread_marker | unread]
+    end
   end
 
   defp assign_message_form(socket, changeset) do
