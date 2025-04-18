@@ -9,7 +9,8 @@ defmodule Slax.Repo.Migrations.AddUsernameToUsers do
     execute """
             UPDATE users
             SET username = initcap(substring(email FROM '^[^@]+'));
-            """, ""
+            """,
+            ""
 
     alter table(:users) do
       modify :username, :citext, null: false, from: {:citext, null: true}
