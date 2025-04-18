@@ -55,6 +55,8 @@ defmodule SlaxWeb do
       use Phoenix.LiveView,
         layout: {SlaxWeb.Layouts, :app}
 
+      import SlaxWeb.SocketHelpers
+
       unquote(html_helpers())
     end
   end
