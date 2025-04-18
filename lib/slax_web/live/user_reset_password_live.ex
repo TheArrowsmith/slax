@@ -5,7 +5,7 @@ defmodule SlaxWeb.UserResetPasswordLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
+    <div class="mx-auto w-96 mt-16">
       <.header class="text-center">Reset Password</.header>
 
       <.simple_form

@@ -3,7 +3,7 @@ defmodule SlaxWeb.UserLoginLive do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
+    <div class="mx-auto w-96 mt-16">
       <.header class="text-center">
         Log in to account
         <:subtitle>
