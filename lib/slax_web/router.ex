@@ -18,7 +18,7 @@ defmodule SlaxWeb.Router do
   end
 
   scope "/", SlaxWeb do
-    pipe_through :browser
+    pipe_through [:browser, :require_authenticated_user]
 
     get "/home", PageController, :home
   end
