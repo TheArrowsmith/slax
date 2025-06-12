@@ -28,8 +28,25 @@ defmodule SlaxWeb.ChatRoomLive.ThreadComponent do
             timezone={@timezone}
           />
         </div>
+        <div id="thread-replies" phx-update="stream">
+          <.message
+            :for={{dom_id, reply} <- @streams.replies}
+            current_user={@current_user}
+            dom_id={dom_id}
+            message={reply}
+            in_thread?
+            timezone={@timezone}
+          />
+        </div>
       </div>
     </div>
     """
+  end
+
+  def update(assigns, socket) do
+    socket
+    |> stream(:replies, assigns.message.replies, reset: true)
+    |> assign(assigns)
+    |> ok()
   end
 end
