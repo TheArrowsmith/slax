@@ -8,7 +8,11 @@ defmodule SlaxWeb.ChatRoomLive.ThreadComponent do
 
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col shrink-0 w-1/4 max-w-xs border-l border-slate-300 bg-slate-100">
+    <div
+      class="flex flex-col shrink-0 w-1/4 max-w-xs border-l border-slate-300 bg-slate-100"
+      id="thread-component"
+      phx-hook="Thread"
+    >
       <div class="flex items-center shrink-0 h-16 border-b border-slate-300 px-4">
         <div>
           <h2 class="text-sm font-semibold leading-none">Thread</h2>
@@ -21,7 +25,7 @@ defmodule SlaxWeb.ChatRoomLive.ThreadComponent do
           <.icon name="hero-x-mark" class="w-5 h-5" />
         </button>
       </div>
-      <div class="flex flex-col grow overflow-auto">
+      <div id="thread-message-with-replies" class="flex flex-col grow overflow-auto">
         <div class="border-b border-slate-300">
           <.message
             message={@message}
@@ -58,6 +62,7 @@ defmodule SlaxWeb.ChatRoomLive.ThreadComponent do
               id="thread-message-textarea"
               name={@form[:body].name}
               phx-debounce
+              phx-hook="ChatMessageTextarea"
               placeholder="Reply…"
               rows="1"
             >{Phoenix.HTML.Form.normalize_value("textarea", @form[:body].value)}</textarea>

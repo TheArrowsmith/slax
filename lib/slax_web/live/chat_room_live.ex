@@ -563,7 +563,11 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   def handle_info({:new_reply, message}, socket) do
-    socket
+    if socket.assigns[:thread] && socket.assigns.thread.id == message.id do
+      push_event(socket, "scroll_thread_to_bottom", %{})
+    else
+      socket
+    end
     |> refresh_message(message)
     |> noreply()
   end
