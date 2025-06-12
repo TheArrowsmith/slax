@@ -3,6 +3,7 @@ defmodule Slax.Chat.Message do
   import Ecto.Changeset
 
   alias Slax.Accounts.User
+  alias Slax.Chat.Reaction
   alias Slax.Chat.Reply
   alias Slax.Chat.Room
 
@@ -10,6 +11,7 @@ defmodule Slax.Chat.Message do
     field :body, :string
     belongs_to :room, Room
     belongs_to :user, User
+    has_many :reactions, Reaction
     has_many :replies, Reply
 
     timestamps(type: :utc_datetime)
