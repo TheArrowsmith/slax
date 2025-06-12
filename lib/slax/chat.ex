@@ -76,12 +76,16 @@ defmodule Slax.Chat do
     |> Repo.update()
   end
 
-  def list_messages_in_room(%Room{id: room_id}) do
+  def list_messages_in_room(%Room{id: room_id}, opts \\ []) do
     Message
     |> where([m], m.room_id == ^room_id)
-    |> order_by([m], asc: :inserted_at, asc: :id)
+    |> order_by([m], desc: :inserted_at, desc: :id)
     |> preload_message_user_and_replies()
-    |> Repo.all()
+    |> Repo.paginate(
+      after: opts[:after],
+      limit: 3,
+      cursor_fields: [inserted_at: :desc, id: :desc]
+    )
   end
 
   defp preload_message_user_and_replies(message_query) do
