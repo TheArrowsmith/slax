@@ -30,7 +30,7 @@ defmodule SlaxWeb.ChatRoomLive.ProfileComponent do
               phx-submit="submit-avatar"
               phx-target={@myself}
             >
-                          <div class="mb-4">
+              <div class="mb-4">
                 <%= if Enum.any?(@uploads.avatar.entries) do %>
                   <div class="mx-auto mb-2 w-48">
                     <.live_img_preview

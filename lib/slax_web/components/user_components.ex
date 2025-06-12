@@ -8,7 +8,7 @@ defmodule SlaxWeb.UserComponents do
 
   def user_avatar(assigns) do
     ~H"""
-    <img src={user_avatar_path(@user)} {@rest} />
+    <img data-user-avatar-id={@user.id} src={user_avatar_path(@user)} {@rest} />
     """
   end
 
