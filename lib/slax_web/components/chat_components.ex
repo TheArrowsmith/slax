@@ -2,6 +2,7 @@ defmodule SlaxWeb.ChatComponents do
   use SlaxWeb, :html
 
   alias Slax.Accounts.User
+  alias Slax.Chat.Message
 
   import SlaxWeb.UserComponents
 
@@ -59,6 +60,21 @@ defmodule SlaxWeb.ChatComponents do
           </span>
           <p class="text-sm">{@message.body}</p>
           <div
+            :if={is_struct(@message, Message) && Enum.any?(@message.reactions)}
+            class="flex space-x-2 mt-2"
+          >
+            <%= for {emoji, count, me?} <- enumerate_reactions(@message.reactions, @current_user) do %>
+              <button class={[
+                "flex items-center pl-2 pr-2 h-6 rounded-full text-xs",
+                me? && "bg-blue-100 border border-blue-400",
+                !me? && "bg-slate-200 hover:bg-slate-400"
+              ]}>
+                <span>{emoji}</span>
+                <span class="ml-1 font-medium">{count}</span>
+              </button>
+            <% end %>
+          </div>
+          <div
             :if={!@in_thread? && Enum.any?(@message.replies)}
             class="inline-flex items-center mt-2 rounded border border-transparent hover:border-slate-200 hover:bg-slate-50 py-1 pr-2 box-border cursor-pointer"
             phx-click="show-thread"
@@ -78,6 +94,16 @@ defmodule SlaxWeb.ChatComponents do
       </div>
     </div>
     """
+  end
+
+  defp enumerate_reactions(reactions, current_user) do
+    reactions
+    |> Enum.group_by(& &1.emoji)
+    |> Enum.map(fn {emoji, reactions} ->
+      me? = Enum.any?(reactions, &(&1.user_id == current_user.id))
+
+      {emoji, length(reactions), me?}
+    end)
   end
 
   defp thread_avatars(assigns) do

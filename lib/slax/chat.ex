@@ -1,6 +1,7 @@
 defmodule Slax.Chat do
   alias Slax.Accounts.User
   alias Slax.Chat.Message
+  alias Slax.Chat.Reaction
   alias Slax.Chat.Reply
   alias Slax.Chat.Room
   alias Slax.Chat.RoomMembership
@@ -81,6 +82,7 @@ defmodule Slax.Chat do
     |> where([m], m.room_id == ^room_id)
     |> order_by([m], desc: :inserted_at, desc: :id)
     |> preload_message_user_and_replies()
+    |> preload_reactions()
     |> Repo.paginate(
       after: opts[:after],
       limit: 50,
@@ -94,13 +96,19 @@ defmodule Slax.Chat do
     preload(message_query, [:user, replies: ^{replies_query, [:user]}])
   end
 
+  defp preload_reactions(message_query) do
+    reactions_query = from r in Reaction, order_by: [asc: :id]
+
+    preload(message_query, reactions: ^reactions_query)
+  end
+
   def change_message(message, attrs \\ %{}) do
     Message.changeset(message, attrs)
   end
 
   def create_message(room, attrs, user) do
     with {:ok, message} <-
-           %Message{room: room, user: user, replies: []}
+           %Message{room: room, user: user, replies: [], reactions: []}
            |> Message.changeset(attrs)
            |> Repo.insert() do
       Phoenix.PubSub.broadcast!(@pubsub, topic(room.id), {:new_message, message})
@@ -182,6 +190,7 @@ defmodule Slax.Chat do
     Message
     |> where([m], m.id == ^id)
     |> preload_message_user_and_replies()
+    |> preload_reactions()
     |> Repo.one!()
   end
 
@@ -212,5 +221,11 @@ defmodule Slax.Chat do
 
       {:ok, reply}
     end
+  end
+
+  def add_reaction(emoji, %Message{} = message, %User{} = user) do
+    %Reaction{message_id: message.id, user_id: user.id}
+    |> Reaction.changeset(%{emoji: emoji})
+    |> Repo.insert()
   end
 end
