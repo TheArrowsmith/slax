@@ -98,7 +98,16 @@ defmodule SlaxWeb.ChatRoomLive do
         </div>
         <ul class="relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
           <li class="text-[0.8125rem] leading-6 text-zinc-900">
-            {@current_user.username}
+            <div class="text-sm leading-10">
+              <.link
+                class="flex gap-4 items-center"
+                phx-click="show-profile"
+                phx-value-user-id={@current_user.id}
+              >
+                <img src={~p"/images/one_ring.jpg"} class="h-8 w-8 rounded" />
+                <span class="hover:underline">{@current_user.username}</span>
+              </.link>
+            </div>
           </li>
           <li>
             <.link
@@ -202,6 +211,10 @@ defmodule SlaxWeb.ChatRoomLive do
       </div>
     </div>
 
+    <%= if assigns[:profile] do %>
+      <.live_component id="profile" module={SlaxWeb.ChatRoomLive.ProfileComponent} user={@profile} />
+    <% end %>
+
     <.modal id="new-room-modal" show={@live_action == :new} on_cancel={JS.patch(~p"/rooms/#{@room}")}>
       <.header>New chat room</.header>
 
@@ -279,11 +292,20 @@ defmodule SlaxWeb.ChatRoomLive do
       >
         <.icon name="hero-trash" class="h-4 w-4" />
       </button>
-      <img class="h-10 w-10 rounded shrink-0" src={~p"/images/one_ring.jpg"} />
+      <img
+        class="h-10 w-10 rounded cursor-pointer"
+        phx-click="show-profile"
+        phx-value-user-id={@message.user.id}
+        src={~p"/images/one_ring.jpg"}
+      />
       <div class="ml-2">
         <div class="-mt-1">
-          <.link class="text-sm font-semibold hover:underline">
-            <span>{@message.user.username}</span>
+          <.link
+            phx-click="show-profile"
+            phx-value-user-id={@message.user.id}
+            class="text-sm font-semibold hover:underline"
+          >
+            {@message.user.username}
           </.link>
           <span :if={@timezone} class="ml-1 text-xs text-gray-500">
             {message_timestamp(@message, @timezone)}
@@ -447,6 +469,10 @@ defmodule SlaxWeb.ChatRoomLive do
     assign(socket, :new_message_form, to_form(changeset))
   end
 
+  def handle_event("close-profile", _, socket) do
+    {:noreply, assign(socket, :profile, nil)}
+  end
+
   def handle_event("delete-message", %{"id" => id}, socket) do
     Chat.delete_message_by_id(id, socket.assigns.current_user)
 
@@ -484,6 +510,11 @@ defmodule SlaxWeb.ChatRoomLive do
       end
 
     {:noreply, socket}
+  end
+
+  def handle_event("show-profile", %{"user-id" => user_id}, socket) do
+    user = Accounts.get_user!(user_id)
+    {:noreply, assign(socket, :profile, user)}
   end
 
   def handle_event("toggle-topic", _params, socket) do
