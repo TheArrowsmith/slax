@@ -513,8 +513,8 @@ defmodule SlaxWeb.ChatRoomLive do
     |> reply(%{can_load_more: !is_nil(page.metadata.after)})
   end
 
-  def handle_event("remove-reaction", %{"message_id" => message, "emoji" => emoji}, socket) do
-    message = Chat.get_message!(message)
+  def handle_event("remove-reaction", %{"message_id" => message_id, "emoji" => emoji}, socket) do
+    message = Chat.get_message!(message_id)
 
     Chat.remove_reaction(emoji, message, socket.assigns.current_user)
 
