@@ -214,7 +214,12 @@ defmodule SlaxWeb.ChatRoomLive do
     </div>
 
     <%= if assigns[:profile] do %>
-      <.live_component id="profile" module={SlaxWeb.ChatRoomLive.ProfileComponent} user={@profile} />
+      <.live_component
+        id="profile"
+        module={SlaxWeb.ChatRoomLive.ProfileComponent}
+        user={@profile}
+        current_user={@current_user}
+      />
     <% end %>
 
     <.modal id="new-room-modal" show={@live_action == :new} on_cancel={JS.patch(~p"/rooms/#{@room}")}>
