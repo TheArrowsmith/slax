@@ -1,6 +1,9 @@
 defmodule SlaxWeb.ChatRoomLive.ThreadComponent do
   use SlaxWeb, :live_component
 
+  alias Slax.Chat
+  alias Slax.Chat.Reply
+
   import SlaxWeb.ChatComponents
 
   def render(assigns) do
@@ -39,14 +42,71 @@ defmodule SlaxWeb.ChatRoomLive.ThreadComponent do
           />
         </div>
       </div>
+      <div class="bg-slate-100 px-4 pt-3 mt-auto">
+        <div :if={@joined?} class="h-12 pb-4">
+          <.form
+            class="flex items-center border-2 border-slate-300 rounded-sm p-1 border-b-0"
+            for={@form}
+            id="new-reply-form"
+            phx-change="validate-reply"
+            phx-submit="submit-reply"
+            phx-target={@myself}
+          >
+            <textarea
+              class="grow text-sm px-3 border-l border-slate-300 mx-1 resize-none bg-slate-50"
+              cols=""
+              id="thread-message-textarea"
+              name={@form[:body].name}
+              phx-debounce
+              placeholder="Reply…"
+              rows="1"
+            >{Phoenix.HTML.Form.normalize_value("textarea", @form[:body].value)}</textarea>
+            <button class="shrink flex items-center justify-center h-6 w-6 rounded hover:bg-slate-200">
+              <.icon name="hero-paper-airplane" class="h-4 w-4" />
+            </button>
+          </.form>
+        </div>
+      </div>
     </div>
     """
   end
 
   def update(assigns, socket) do
     socket
+    |> assign_form(Chat.change_reply(%Reply{}))
     |> stream(:replies, assigns.message.replies, reset: true)
     |> assign(assigns)
     |> ok()
+  end
+
+  defp assign_form(socket, changeset) do
+    assign(socket, :form, to_form(changeset))
+  end
+
+  def handle_event("submit-reply", %{"reply" => message_params}, socket) do
+    %{current_user: current_user, room: room} = socket.assigns
+
+    if !Chat.joined?(room, current_user) do
+      raise "not allowed"
+    end
+
+    case Chat.create_reply(
+           socket.assigns.message,
+           message_params,
+           socket.assigns.current_user
+         ) do
+      {:ok, _message} ->
+        assign_form(socket, Chat.change_reply(%Reply{}))
+
+      {:error, changeset} ->
+        assign_form(socket, changeset)
+    end
+    |> noreply()
+  end
+
+  def handle_event("validate-reply", %{"reply" => message_params}, socket) do
+    changeset = Chat.change_reply(%Reply{}, message_params)
+
+    {:noreply, assign_form(socket, changeset)}
   end
 end
