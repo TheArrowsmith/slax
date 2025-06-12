@@ -64,11 +64,16 @@ defmodule SlaxWeb.ChatComponents do
             class="flex space-x-2 mt-2"
           >
             <%= for {emoji, count, me?} <- enumerate_reactions(@message.reactions, @current_user) do %>
-              <button class={[
-                "flex items-center pl-2 pr-2 h-6 rounded-full text-xs",
-                me? && "bg-blue-100 border border-blue-400",
-                !me? && "bg-slate-200 hover:bg-slate-400"
-              ]}>
+              <button
+                class={[
+                  "flex items-center pl-2 pr-2 h-6 rounded-full text-xs",
+                  me? && "bg-blue-100 border border-blue-400",
+                  !me? && "bg-slate-200 hover:bg-slate-400"
+                ]}
+                phx-click={if me?, do: "remove-reaction", else: "add-reaction"}
+                phx-value-emoji={emoji}
+                phx-value-message_id={@message.id}
+              >
                 <span>{emoji}</span>
                 <span class="ml-1 font-medium">{count}</span>
               </button>
