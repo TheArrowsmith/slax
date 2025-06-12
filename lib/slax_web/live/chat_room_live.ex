@@ -128,18 +128,26 @@ defmodule SlaxWeb.ChatRoomLive do
         phx-update="stream"
       >
         <%= for {dom_id, message} <- @streams.messages do %>
-          <%= if message == :unread_marker do %>
-            <div id={dom_id} class="w-full flex text-red-500 items-center gap-3 pr-5">
-              <div class="w-full h-px grow bg-red-500"></div>
-              <div class="text-sm">New</div>
-            </div>
-          <% else %>
-            <.message
-              current_user={@current_user}
-              dom_id={dom_id}
-              message={message}
-              timezone={@timezone}
-            />
+          <%= case message do %>
+            <% :unread_marker -> %>
+              <div id={dom_id} class="w-full flex text-red-500 items-center gap-3 pr-5">
+                <div class="w-full h-px grow bg-red-500"></div>
+                <div class="text-sm">New</div>
+              </div>
+            <% %Message{} -> %>
+              <.message
+                current_user={@current_user}
+                dom_id={dom_id}
+                message={message}
+                timezone={@timezone}
+              />
+            <% %Date{} -> %>
+              <div id={dom_id} class="flex flex-col items-center mt-2">
+                <hr class="w-full" />
+                <span class="flex items-center justify-center -mt-3 bg-white h-6 px-3 rounded-full border text-xs font-semibold mx-auto">
+                  {format_date(message)}
+                </span>
+              </div>
           <% end %>
         <% end %>
       </div>
@@ -202,6 +210,31 @@ defmodule SlaxWeb.ChatRoomLive do
       <.room_form form={@new_room_form} />
     </.modal>
     """
+  end
+
+  defp format_date(%Date{} = date) do
+    today = Date.utc_today()
+
+    case Date.diff(today, date) do
+      0 ->
+        "Today"
+
+      1 ->
+        "Yesterday"
+
+      _ ->
+        format_str = "%A, %B %e#{ordinal(date.day)}#{if today.year != date.year, do: " %Y"}"
+        Timex.format!(date, format_str, :strftime)
+    end
+  end
+
+  defp ordinal(day) do
+    cond do
+      rem(day, 10) == 1 and day != 11 -> "st"
+      rem(day, 10) == 2 and day != 12 -> "nd"
+      rem(day, 10) == 3 and day != 13 -> "rd"
+      true -> "th"
+    end
   end
 
   attr :dom_id, :string, required: true
@@ -341,6 +374,7 @@ defmodule SlaxWeb.ChatRoomLive do
       dom_id: fn
         %Message{id: id} -> "messages-#{id}"
         :unread_marker -> "messages-unread-marker"
+        %Date{} = date -> to_string(date)
       end
     )
     |> ok()
@@ -357,6 +391,7 @@ defmodule SlaxWeb.ChatRoomLive do
     messages =
       room
       |> Chat.list_messages_in_room()
+      |> insert_date_dividers(socket.assigns.timezone)
       |> maybe_insert_unread_marker(last_read_at)
 
     Chat.update_last_read_at(room, socket.assigns.current_user)
@@ -382,11 +417,27 @@ defmodule SlaxWeb.ChatRoomLive do
     |> noreply()
   end
 
+  defp insert_date_dividers(messages, nil), do: messages
+
+  defp insert_date_dividers(messages, timezone) do
+    messages
+    |> Enum.group_by(fn message ->
+      message.inserted_at
+      |> DateTime.shift_zone!(timezone)
+      |> DateTime.to_date()
+    end)
+    |> Enum.sort_by(fn {date, _msgs} -> date end, &(Date.compare(&1, &2) != :gt))
+    |> Enum.flat_map(fn {date, messages} -> [date | messages] end)
+  end
+
   defp maybe_insert_unread_marker(messages, nil), do: messages
 
   defp maybe_insert_unread_marker(messages, last_read_at) do
     {read, unread} =
-      Enum.split_while(messages, &(DateTime.compare(&1.inserted_at, last_read_at) != :gt))
+      Enum.split_while(messages, fn
+        %Message{} = message -> DateTime.compare(message.inserted_at, last_read_at) != :gt
+        _ -> true
+      end)
 
     if unread == [] do
       read
