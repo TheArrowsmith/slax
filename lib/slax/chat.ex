@@ -156,4 +156,11 @@ defmodule Slax.Chat do
         nil
     end
   end
+
+  def get_message!(id) do
+    Message
+    |> where([m], m.id == ^id)
+    |> preload(:user)
+    |> Repo.one!()
+  end
 end
